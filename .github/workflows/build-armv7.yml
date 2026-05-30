@@ -10,24 +10,33 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          submodules: recursive # 🔗 核心修复：自动拉取所有可能缺少的子模块
+          submodules: recursive
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: armv7-unknown-linux-gnueabihf
 
-      - name: Install Cross-compilation tools
+      - name: Setup Cross-compilation Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf protobuf-compiler libssl-dev
+          sudo apt-get install -y protobuf-compiler
 
       - name: Setup Cross
         run: cargo install cross --git https://github.com
 
+      - name: Configure Cargo for Cross
+        # 🔗 核心修复：直接在项目根目录强制建立 Cargo 配置文件，确保 Docker 容器内也强制使用本地 Git 客户端
+        run: |
+          mkdir -p .cargo
+          echo '[net]' > .cargo/config.toml
+          echo 'git-fetch-with-cli = true' >> .cargo/config.toml
+
       - name: Build for ARMv7
+        # 🌐 核心修复：通过 CROSS_CONTAINER_OPTS 将宿主机的 Git 凭证和特殊环境变量强制透传进编译容器
         env:
-          CARGO_NET_GIT_FETCH_WITH_CLI: "true" # 🌐 核心修复：使用系统 Git 替代内置网络库，防止 404 报错
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+          CROSS_CONTAINER_OPTS: "--env CARGO_NET_GIT_FETCH_WITH_CLI=true"
         run: |
           cross build --release --target armv7-unknown-linux-gnueabihf
 
