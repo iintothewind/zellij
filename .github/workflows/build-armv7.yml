@@ -1,0 +1,34 @@
+name: Build Zellij ARMv7
+
+on:
+  workflow_dispatch: # 允许你随时手动点击按钮触发编译
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: armv7-unknown-linux-gnueabihf
+
+      - name: Install Cross-compilation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf protobuf-compiler
+
+      - name: Setup Cross
+        run: cargo install cross --git https://github.com
+
+      - name: Build for ARMv7
+        run: |
+          cross build --release --target armv7-unknown-linux-gnueabihf
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zellij-armv7
+          path: target/armv7-unknown-linux-gnueabihf/release/zellij
