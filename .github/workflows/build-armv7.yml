@@ -1,7 +1,7 @@
 name: Build Zellij ARMv7
 
 on:
-  workflow_dispatch: # 允许你随时手动点击按钮触发编译
+  workflow_dispatch:
 
 jobs:
   build:
@@ -9,6 +9,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive # 🔗 核心修复：自动拉取所有可能缺少的子模块
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -18,12 +20,14 @@ jobs:
       - name: Install Cross-compilation tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf protobuf-compiler
+          sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf protobuf-compiler libssl-dev
 
       - name: Setup Cross
         run: cargo install cross --git https://github.com
 
       - name: Build for ARMv7
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true" # 🌐 核心修复：使用系统 Git 替代内置网络库，防止 404 报错
         run: |
           cross build --release --target armv7-unknown-linux-gnueabihf
 
